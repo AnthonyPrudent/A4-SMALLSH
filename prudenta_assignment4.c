@@ -1,6 +1,6 @@
 /*
 * Code adapted from:
-* Title: sample_parcer.c
+* Title: sample_parser.c
 * Author: Oregon State University 
 * Date 2/25/2025
 * Availability: https://canvas.oregonstate.edu/courses/1987883/files/109834045?wrap=1
@@ -24,8 +24,14 @@ struct command_line
     bool is_bg;
 };
  
+void ls() 
+{
+
+
+}
  
-struct command_line *parse_input() {
+struct command_line *parse_input() 
+{
 
     char input[INPUT_LENGTH];
     struct command_line *curr_command = (struct command_line *) calloc(1, sizeof(struct command_line));
@@ -59,6 +65,13 @@ int main()
     while(true)
     {
         curr_command = parse_input();
+
+        for(int i=0; i < curr_command->argc; i++)
+        {
+            if(strcmp(curr_command->argv[i], "ls") == 0) {
+                ls();
+            }
+        }
 
     }
     return EXIT_SUCCESS;
