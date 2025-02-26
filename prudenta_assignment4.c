@@ -1,3 +1,26 @@
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+
+void ls() 
+{
+    DIR* current_directory = opendir(".");
+    struct dirent* entry;
+    
+    while((entry = readdir(current_directory)) != NULL)
+    {   
+        if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+        printf("%s  ", entry->d_name);
+        fflush(stdout);
+    }
+
+    printf("\n");
+    fflush(stdout);
+
+}
+
 /*
 * Code adapted from:
 * Title: sample_parser.c
@@ -5,11 +28,6 @@
 * Date 2/25/2025
 * Availability: https://canvas.oregonstate.edu/courses/1987883/files/109834045?wrap=1
 */
-
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define INPUT_LENGTH 2048
 #define MAX_ARGS	  512
@@ -24,11 +42,6 @@ struct command_line
     bool is_bg;
 };
  
-void ls() 
-{
-
-
-}
  
 struct command_line *parse_input() 
 {
