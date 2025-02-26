@@ -6,10 +6,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-void status()
+void status(int child_status)
 {
 
-    
+    printf("exit value %d\n", child_status);
 
 }
 
@@ -143,7 +143,7 @@ void cd(struct command_line *curr_command)
 * Availability: https://canvas.oregonstate.edu/courses/1987883/pages/exploration-process-api-executing-a-new-program?module_item_id=24956220
 */
 
-void other_command(struct command_line *curr_command)
+int other_command(struct command_line *curr_command)
 {
 
     int child_status;
@@ -167,12 +167,15 @@ void other_command(struct command_line *curr_command)
 
     }
 
+    return child_status;
+
 }
 
 int main()
 {
 
     struct command_line *curr_command;
+    int child_status;
 
     while(true)
     {
@@ -189,11 +192,11 @@ int main()
 
         } else if(strcmp(curr_command->argv[0], "status") == 0) {
 
-            status();
+            status(child_status);
 
         } else if(strcmp(curr_command->argv[0], "#") != 0) {
 
-            other_command(curr_command);
+            child_status = other_command(curr_command);
 
         }
 
