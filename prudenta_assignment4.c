@@ -92,6 +92,7 @@ void cd(struct command_line *curr_command)
     if(curr_command->argc == 1) {
 
         setenv("PWD", getenv("HOME"), 1);
+        chdir(getenv("HOME"));
     
     } else if(strcmp(curr_command->argv[1], ".") != 0) {
 
@@ -101,11 +102,13 @@ void cd(struct command_line *curr_command)
             curr_abs_directory[strlen(curr_abs_directory) - strlen(curr_rel_directory)] = '\0';
 
             setenv("PWD", curr_abs_directory, 1);
+            chdir(curr_abs_directory);
         
         // Absolute path handling
         } else if(opendir(curr_command->argv[1]) != NULL) {
 
             setenv("PWD", curr_command->argv[1], 1);
+            chdir(curr_command->argv[1]);
         
         // Relative path handling with directory name
         } else {
@@ -119,12 +122,13 @@ void cd(struct command_line *curr_command)
                     strcat(curr_abs_directory, "/");
                     strcat(curr_abs_directory, curr_command->argv[1]);
                     setenv("PWD", curr_abs_directory, 1);
+                    chdir(curr_abs_directory);
 
                 }
 
-                closedir(opened_directory);
-
             }
+
+            closedir(opened_directory);
         
         }
 
@@ -172,7 +176,7 @@ int main()
 {
 
     struct command_line *curr_command;
-    int child_status;
+    int child_status = 0;
 
     while(true)
     {
@@ -196,6 +200,8 @@ int main()
             child_status = other_command(curr_command);
 
         }
+        
+        free(curr_command);
 
     }
 
