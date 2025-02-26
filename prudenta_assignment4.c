@@ -10,6 +10,7 @@ void status(int child_status)
 {
 
     printf("exit value %d\n", child_status);
+    fflush(stdout);
 
 }
 
@@ -87,8 +88,6 @@ void cd(struct command_line *curr_command)
     strcpy(curr_abs_directory, getenv("PWD"));
     strcpy(curr_rel_directory, strrchr(curr_abs_directory, '/'));
 
-    printf("%s\n", curr_abs_directory);
-
     // CD with no arguments handling
     if(curr_command->argc == 1) {
 
@@ -130,8 +129,6 @@ void cd(struct command_line *curr_command)
         }
 
     }
-
-    printf("%s\n", getenv("PWD"));
 
 }
 
