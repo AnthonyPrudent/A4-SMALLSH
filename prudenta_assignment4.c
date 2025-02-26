@@ -3,26 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
-void ls() 
+void status()
 {
-    DIR* curr_directory = opendir(".");
-    struct dirent* entry;
+
     
-    while((entry = readdir(curr_directory)) != NULL)
-    {   
-
-        if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-           
-            printf("%s  ", entry->d_name);
-            fflush(stdout);
-
-        }
-
-    }
-
-    printf("\n");
-    fflush(stdout);
 
 }
 
@@ -148,6 +135,40 @@ void cd(struct command_line *curr_command)
 
 }
 
+/*
+* Code adapted from:
+* Title: Using exec() with fork() example
+* Author: Oregon State University 
+* Date 2/26/2025
+* Availability: https://canvas.oregonstate.edu/courses/1987883/pages/exploration-process-api-executing-a-new-program?module_item_id=24956220
+*/
+
+void other_command(struct command_line *curr_command)
+{
+
+    int child_status;
+    pid_t spawn_pid = fork();
+
+    switch(spawn_pid) {
+        case -1:
+            perror("fork()\n");
+            exit(1);
+            break;
+
+        case 0:
+            execvp(curr_command->argv[0], curr_command->argv);
+            perror("execvp");
+            exit(2);
+            break;
+
+        default:
+            spawn_pid = waitpid(spawn_pid, &child_status, 0);
+            break;
+
+    }
+
+}
+
 int main()
 {
 
@@ -161,6 +182,18 @@ int main()
         if(strcmp(curr_command->argv[0], "cd") == 0) {
 
             cd(curr_command);
+
+        } else if(strcmp(curr_command->argv[0], "exit") == 0) {
+
+           exit(0);
+
+        } else if(strcmp(curr_command->argv[0], "status") == 0) {
+
+            status();
+
+        } else if(strcmp(curr_command->argv[0], "#") != 0) {
+
+            other_command(curr_command);
 
         }
 
