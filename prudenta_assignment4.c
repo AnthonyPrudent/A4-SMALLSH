@@ -6,6 +6,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #define MAX_BACKGROUND_PROCESSES 10
 int child_status = 0;
@@ -145,12 +147,13 @@ void cd(struct command_line *curr_command)
 
 /*
 * Code adapted from:
-* Title: Using exec() with fork() example & Custom Handler for SIGINT
+* Title: Using exec() with fork() example, Custom Handler for SIGINT, and Using dup2() for Redirection Example
 * Author: Oregon State University 
 * Date 2/26/2025
 * Availability: 
 * https://canvas.oregonstate.edu/courses/1987883/pages/exploration-process-api-executing-a-new-program?module_item_id=24956220
 * https://canvas.oregonstate.edu/courses/1987883/pages/exploration-signal-handling-api?module_item_id=24956227
+* https://canvas.oregonstate.edu/courses/1987883/pages/exploration-processes-and-i-slash-o?module_item_id=24956228
 */
 
 void handle_SIGCHLD(int signo)
@@ -171,6 +174,54 @@ void other_command(struct command_line *curr_command)
             break;
 
         case 0:
+            // IO Redirection
+            // Input file
+            if(curr_command->input_file != NULL) {
+
+                int input_file = open(curr_command->input_file, O_RDONLY, 0640);
+
+                if(input_file == -1) {
+
+                    perror("open()");
+                    exit(1);
+
+                }
+
+                int input_result = dup2(input_file, 0);
+
+                if(input_result == -1) {
+
+                    perror("dup2()");
+                    exit(2);
+
+                }
+
+            }
+
+            // Output file
+            if(curr_command->output_file != NULL) {
+
+                int output_file = open(curr_command->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0640);
+                
+                if(output_file == -1) {
+
+                    perror("open()");
+                    exit(1);
+
+                }
+
+                int output_result = dup2(output_file, 1);
+
+                if(output_result == -1) {
+
+                    perror("dup2()");
+                    exit(2);
+
+                }
+
+            }
+
+            // exec()
             execvp(curr_command->argv[0], curr_command->argv);
             perror("execvp");
             exit(2);
@@ -211,6 +262,7 @@ int main()
     struct command_line *curr_command;
     pid_t spawn_pid;
     struct sigaction SIGCHLD_action = {0};
+    int background_child_status;
 
     //SIGCHLD_action.sa_handler = handle_SIGCHLD;
     //sigfillset(&SIGCHLD_action.sa_mask);
@@ -224,17 +276,17 @@ int main()
 
             spawn_pid = background_process[i];
 
-            if(waitpid(spawn_pid, &child_status, WNOHANG) != 0 && spawn_pid != 0) {
+            if(waitpid(spawn_pid, &background_child_status, WNOHANG) != 0 && spawn_pid != 0) {
 
                 background_process[i] = 0; 
 
                 if(child_status == 0) {
 
-                    printf("background pid %d is done: exit value %d\n", spawn_pid, child_status);
+                    printf("background pid %d is done: exit value %d\n", spawn_pid, background_child_status);
 
                 } else {
 
-                    printf("background pid %d is done: terminated by signal %d\n", spawn_pid, child_status);
+                    printf("background pid %d is done: terminated by signal %d\n", spawn_pid, background_child_status);
 
                 }
 
