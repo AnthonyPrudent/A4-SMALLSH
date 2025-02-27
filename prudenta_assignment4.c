@@ -5,8 +5,14 @@
 #include <dirent.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <signal.h>
 
-void status(int child_status)
+#define MAX_BACKGROUND_PROCESSES 10
+int child_status = 0;
+int background_process[MAX_BACKGROUND_PROCESSES];
+
+
+void status()
 {
 
     printf("exit value %d\n", child_status);
@@ -23,7 +29,7 @@ void status(int child_status)
 */
 
 #define INPUT_LENGTH 2048
-#define MAX_ARGS	  512
+#define MAX_ARGS	 512
 
 
 struct command_line
@@ -80,6 +86,7 @@ struct command_line *parse_input()
  
 void cd(struct command_line *curr_command)
 {   
+
     char curr_abs_directory[INPUT_LENGTH];
     char curr_rel_directory[INPUT_LENGTH];
     DIR* opened_directory;
@@ -138,16 +145,23 @@ void cd(struct command_line *curr_command)
 
 /*
 * Code adapted from:
-* Title: Using exec() with fork() example
+* Title: Using exec() with fork() example & Custom Handler for SIGINT
 * Author: Oregon State University 
 * Date 2/26/2025
-* Availability: https://canvas.oregonstate.edu/courses/1987883/pages/exploration-process-api-executing-a-new-program?module_item_id=24956220
+* Availability: 
+* https://canvas.oregonstate.edu/courses/1987883/pages/exploration-process-api-executing-a-new-program?module_item_id=24956220
+* https://canvas.oregonstate.edu/courses/1987883/pages/exploration-signal-handling-api?module_item_id=24956227
 */
 
-int other_command(struct command_line *curr_command)
+void handle_SIGCHLD(int signo)
+{   
+
+
+}
+
+void other_command(struct command_line *curr_command)
 {
 
-    int child_status;
     pid_t spawn_pid = fork();
 
     switch(spawn_pid) {
@@ -163,44 +177,95 @@ int other_command(struct command_line *curr_command)
             break;
 
         default:
-            spawn_pid = waitpid(spawn_pid, &child_status, 0);
-            break;
+            if(curr_command->is_bg == false) {
 
+                waitpid(spawn_pid, &child_status, 0);
+            
+            } else {
+                
+                printf("background pid is %d\n", spawn_pid);
+                fflush(stdout);
+                
+                int i = 0;
+                int current_process = background_process[i];
+
+                while(current_process != 0 && i < MAX_BACKGROUND_PROCESSES) {
+                    
+                    i++;
+                    current_process = background_process[i];
+
+                }
+
+                background_process[i] = spawn_pid;
+    
+            }
+
+            break;  
     }
-
-    return child_status;
 
 }
 
 int main()
 {
-
+    
     struct command_line *curr_command;
-    int child_status = 0;
+    pid_t spawn_pid;
+    struct sigaction SIGCHLD_action = {0};
+
+    //SIGCHLD_action.sa_handler = handle_SIGCHLD;
+    //sigfillset(&SIGCHLD_action.sa_mask);
+    //SIGCHLD_action.sa_flags = 0;
+    //sigaction(SIGCHLD, &SIGCHLD_action, NULL);
 
     while(true)
     {
 
-        curr_command = parse_input();
-        
-        if(strcmp(curr_command->argv[0], "cd") == 0) {
+        for(int i=0; i<MAX_BACKGROUND_PROCESSES; i++) {
 
-            cd(curr_command);
+            spawn_pid = background_process[i];
 
-        } else if(strcmp(curr_command->argv[0], "exit") == 0) {
+            if(waitpid(spawn_pid, &child_status, WNOHANG) != 0 && spawn_pid != 0) {
 
-           exit(0);
+                background_process[i] = 0; 
 
-        } else if(strcmp(curr_command->argv[0], "status") == 0) {
+                if(child_status == 0) {
 
-            status(child_status);
+                    printf("background pid %d is done: exit value %d\n", spawn_pid, child_status);
 
-        } else if(strcmp(curr_command->argv[0], "#") != 0) {
+                } else {
 
-            child_status = other_command(curr_command);
+                    printf("background pid %d is done: terminated by signal %d\n", spawn_pid, child_status);
+
+                }
+
+            }
 
         }
+
+        curr_command = parse_input();
         
+        if(curr_command->argc != 0) {
+
+            if(strcmp(curr_command->argv[0], "cd") == 0) {
+
+                cd(curr_command);
+
+            } else if(strcmp(curr_command->argv[0], "exit") == 0) {
+
+                exit(0);
+
+            } else if(strcmp(curr_command->argv[0], "status") == 0) {
+
+                status(child_status);
+
+            } else if(strcmp(curr_command->argv[0], "#") != 0) {
+
+                other_command(curr_command);
+
+            }
+
+        }
+
         free(curr_command);
 
     }
