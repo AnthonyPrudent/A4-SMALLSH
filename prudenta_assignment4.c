@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 
 #define MAX_BACKGROUND_PROCESSES 10
+
 int child_status = 0;
 int background_process[MAX_BACKGROUND_PROCESSES];
 
@@ -17,8 +18,17 @@ int background_process[MAX_BACKGROUND_PROCESSES];
 void status()
 {
 
-    printf("exit value %d\n", child_status);
-    fflush(stdout);
+    if(WIFEXITED(child_status)){
+
+        printf("exit value %d\n", WEXITSTATUS(child_status));
+        fflush(stdout);
+    
+    } else {
+
+        printf("terminated by signal %d\n", WTERMSIG(child_status));
+        fflush(stdout);
+
+    }
 
 }
 
@@ -256,6 +266,20 @@ void other_command(struct command_line *curr_command)
 
 }
 
+void cleanup_children() {
+
+    for(int i=0; i < MAX_BACKGROUND_PROCESSES; i++) {
+
+        if(background_process[i] != 0) {
+
+            kill(background_process[i], SIGTERM);
+
+        }
+
+    }
+
+}
+
 int main()
 {
     
@@ -304,7 +328,8 @@ int main()
 
             } else if(strcmp(curr_command->argv[0], "exit") == 0) {
 
-                exit(0);
+                cleanup_children();
+                break;
 
             } else if(strcmp(curr_command->argv[0], "status") == 0) {
 
