@@ -266,7 +266,7 @@ void other_command(struct command_line *curr_command)
 
 }
 
-void cleanup_children() {
+void cleanup_background_processes() {
 
     for(int i=0; i < MAX_BACKGROUND_PROCESSES; i++) {
 
@@ -328,7 +328,7 @@ int main()
 
             } else if(strcmp(curr_command->argv[0], "exit") == 0) {
 
-                cleanup_children();
+                cleanup_background_processes();
                 break;
 
             } else if(strcmp(curr_command->argv[0], "status") == 0) {
