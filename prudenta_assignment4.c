@@ -189,8 +189,8 @@ void other_command(struct command_line *curr_command)
     
     // All children ignore STGTSP signal
     struct sigaction ignore_action = {0};
-    int input_file;
-    int output_file;
+    int input_file = 0;
+    int output_file = 1;
 
     ignore_action.sa_handler = SIG_IGN;
 
@@ -211,7 +211,7 @@ void other_command(struct command_line *curr_command)
 
                 input_file = open(curr_command->input_file, O_RDONLY, 0640);
 
-            } else {
+            } else if(curr_command->is_bg == true) {
                 
                 input_file = open("/dev/null", O_RDONLY, 0640);
 
@@ -238,7 +238,7 @@ void other_command(struct command_line *curr_command)
 
                 output_file = open(curr_command->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0640);
 
-            } else {
+            } else if(curr_command->is_bg == true) {
 
                 output_file = open("/dev/null", O_WRONLY | O_CREAT | O_TRUNC, 0640);
 
