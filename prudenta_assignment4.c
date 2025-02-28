@@ -362,7 +362,7 @@ int main()
 
         curr_command = parse_input();
 
-        if(curr_command->argc != 0) {
+        if(curr_command->argc != 0 && strcmp(curr_command->argv[0], ":") != 0) {
 
             if(strcmp(curr_command->argv[0], "cd") == 0) {
 
