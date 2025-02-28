@@ -14,6 +14,7 @@
 int child_status = 0;
 int background_process[MAX_BACKGROUND_PROCESSES];
 bool background_enabled = true;
+bool status_previous_command = false;
 
 void status()
 {
@@ -329,13 +330,7 @@ int main()
         SIGTSTP_action.sa_handler = handle_SIGTSTP;
         sigfillset(&SIGTSTP_action.sa_mask);
         SIGTSTP_action.sa_flags = SA_RESTART;
-        sigaction(SIGTSTP, &SIGTSTP_action, NULL);
-
-        if WIFSIGNALED(child_status) {
-
-            status();
-
-        }        
+        sigaction(SIGTSTP, &SIGTSTP_action, NULL);     
 
         for(int i=0; i<MAX_BACKGROUND_PROCESSES; i++) {
 
@@ -359,12 +354,19 @@ int main()
 
         }
 
+        if (WIFSIGNALED(child_status) && status_previous_command == false) {
+
+            status();
+
+        }   
+
         curr_command = parse_input();
-        
+
         if(curr_command->argc != 0) {
 
             if(strcmp(curr_command->argv[0], "cd") == 0) {
 
+                status_previous_command = false;
                 cd(curr_command);
 
             } else if(strcmp(curr_command->argv[0], "exit") == 0) {
@@ -374,10 +376,12 @@ int main()
 
             } else if(strcmp(curr_command->argv[0], "status") == 0) {
 
+                status_previous_command = true;
                 status(child_status);
 
             } else if(strcmp(curr_command->argv[0], "#") != 0) {
 
+                status_previous_command = false;
                 other_command(curr_command);
 
             }
