@@ -362,7 +362,7 @@ int main()
 
         curr_command = parse_input();
 
-        if(curr_command->argc != 0 && strcmp(curr_command->argv[0], ":") != 0) {
+        if(curr_command->argc != 0 && curr_command->argv[0][0] != '#') {
 
             if(strcmp(curr_command->argv[0], "cd") == 0) {
 
@@ -379,7 +379,7 @@ int main()
                 status_previous_command = true;
                 status(child_status);
 
-            } else if(strcmp(curr_command->argv[0], "#") != 0) {
+            } else {
 
                 status_previous_command = false;
                 other_command(curr_command);
