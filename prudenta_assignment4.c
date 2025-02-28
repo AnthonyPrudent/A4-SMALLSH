@@ -340,7 +340,7 @@ int main()
 
                 background_process[i] = 0; 
 
-                if(child_status == 0) {
+                if(background_child_status == 0) {
 
                     printf("background pid %d is done: exit value %d\n", spawn_pid, background_child_status);
 
