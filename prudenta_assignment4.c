@@ -189,6 +189,8 @@ void other_command(struct command_line *curr_command)
     
     // All children ignore STGTSP signal
     struct sigaction ignore_action = {0};
+    int input_file;
+    int output_file;
 
     ignore_action.sa_handler = SIG_IGN;
 
@@ -207,46 +209,54 @@ void other_command(struct command_line *curr_command)
             // Input file
             if(curr_command->input_file != NULL) {
 
-                int input_file = open(curr_command->input_file, O_RDONLY, 0640);
+                input_file = open(curr_command->input_file, O_RDONLY, 0640);
 
-                if(input_file == -1) {
+            } else {
+                
+                input_file = open("/dev/null", O_RDONLY, 0640);
 
-                    perror("open()");
-                    exit(1);
+            }
 
-                }
+            if(input_file == -1) {
 
-                int input_result = dup2(input_file, 0);
+                perror("open()");
+                exit(1);
 
-                if(input_result == -1) {
+            }
 
-                    perror("dup2()");
-                    exit(2);
+            int input_result = dup2(input_file, 0);
 
-                }
+            if(input_result == -1) {
+
+                perror("dup2()");
+                exit(2);
 
             }
 
             // Output file
             if(curr_command->output_file != NULL) {
 
-                int output_file = open(curr_command->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0640);
-                
-                if(output_file == -1) {
+                output_file = open(curr_command->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0640);
 
-                    perror("open()");
-                    exit(1);
+            } else {
 
-                }
+                output_file = open("/dev/null", O_WRONLY | O_CREAT | O_TRUNC, 0640);
 
-                int output_result = dup2(output_file, 1);
+            }
 
-                if(output_result == -1) {
+            if(output_file == -1) {
 
-                    perror("dup2()");
-                    exit(2);
+                perror("open()");
+                exit(1);
 
-                }
+            }
+
+            int output_result = dup2(output_file, 1);
+
+            if(output_result == -1) {
+
+                perror("dup2()");
+                exit(2);
 
             }
 
