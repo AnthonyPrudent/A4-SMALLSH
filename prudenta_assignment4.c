@@ -13,7 +13,7 @@
 
 int child_status = 0;
 int background_process[MAX_BACKGROUND_PROCESSES];
-
+bool background_enabled = true;
 
 void status()
 {
@@ -157,7 +157,7 @@ void cd(struct command_line *curr_command)
 
 /*
 * Code adapted from:
-* Title: Using exec() with fork() example, Custom Handler for SIGINT, and Using dup2() for Redirection Example
+* Title: Using exec() with fork() example, Signal Handling API, and Using dup2() for Redirection Example
 * Author: Oregon State University 
 * Date 2/26/2025
 * Availability: 
@@ -166,14 +166,32 @@ void cd(struct command_line *curr_command)
 * https://canvas.oregonstate.edu/courses/1987883/pages/exploration-processes-and-i-slash-o?module_item_id=24956228
 */
 
-void handle_SIGCHLD(int signo)
+void handle_SIGTSTP(int signo)
 {   
 
+    if(background_enabled == true) {
+
+        write(STDOUT_FILENO, "\nEntering foreground-only mode (& is now ignored)\n: ", 52);
+        background_enabled = false;
+
+    } else {
+
+        write(STDOUT_FILENO, "\nExiting foreground-only mode\n: ", 32);
+        background_enabled = true;
+
+    }
 
 }
 
 void other_command(struct command_line *curr_command)
 {
+    
+    // All children ignore STGTSP signal
+    struct sigaction ignore_action = {0};
+
+    ignore_action.sa_handler = SIG_IGN;
+
+    sigaction(SIGTSTP, &ignore_action, NULL);
 
     pid_t spawn_pid = fork();
 
@@ -231,14 +249,28 @@ void other_command(struct command_line *curr_command)
 
             }
 
+            // Signal Handling
+            // Foreground processes do not ignore SIGINT signal;
+            if(curr_command->is_bg == false) {
+
+                struct sigaction SIGINT_action = {0};
+
+                SIGINT_action.sa_handler = SIG_DFL;
+                sigfillset(&SIGINT_action.sa_mask);
+                SIGINT_action.sa_flags = 0;
+                sigaction(SIGINT, &SIGINT_action, NULL);
+
+            }
+
             // exec()
             execvp(curr_command->argv[0], curr_command->argv);
             perror("execvp");
             exit(2);
+
             break;
 
         default:
-            if(curr_command->is_bg == false) {
+            if(curr_command->is_bg == false || background_enabled == false) {
 
                 waitpid(spawn_pid, &child_status, 0);
             
@@ -285,16 +317,25 @@ int main()
     
     struct command_line *curr_command;
     pid_t spawn_pid;
-    struct sigaction SIGCHLD_action = {0};
     int background_child_status;
-
-    //SIGCHLD_action.sa_handler = handle_SIGCHLD;
-    //sigfillset(&SIGCHLD_action.sa_mask);
-    //SIGCHLD_action.sa_flags = 0;
-    //sigaction(SIGCHLD, &SIGCHLD_action, NULL);
+    struct sigaction ignore_action = {0}, SIGTSTP_action = {0};
 
     while(true)
     {
+
+        ignore_action.sa_handler = SIG_IGN;
+        sigaction(SIGINT, &ignore_action, NULL);
+
+        SIGTSTP_action.sa_handler = handle_SIGTSTP;
+        sigfillset(&SIGTSTP_action.sa_mask);
+        SIGTSTP_action.sa_flags = SA_RESTART;
+        sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+
+        if WIFSIGNALED(child_status) {
+
+            status();
+
+        }        
 
         for(int i=0; i<MAX_BACKGROUND_PROCESSES; i++) {
 
